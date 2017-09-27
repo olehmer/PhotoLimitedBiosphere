@@ -1,6 +1,7 @@
 import numpy as np
-from PlanetModel import Planet
-from math import exp, pi, sin
+from math import exp, pi
+
+DEBUG_PRINT = True
 
 H = 6.626E-34 #Planck constant in [J s]
 C = 2.99792458E8 #Speed of light [m s-1]                                          
@@ -8,8 +9,7 @@ KB = 1.38E-23 #Boltzmann constant in [m2 kg s-2 K-1]
 AU = 1.496E11 #1 AU in [m]
 SUN_RAD = 6.957E8 #solar radius [m]
 
-
-def blackbody_flux(T, wvlngth):
+def blackbody_flux_wavelength(T, wvlngth):
     """
     Return the total photon flux in W m-2 s-1 for a blackbody at temperature
     T for the given wavelength, wvlngth. 
@@ -19,11 +19,12 @@ def blackbody_flux(T, wvlngth):
     wvlngth - the frequency at which to calculate the photon flux [nm]
 
     Returns:
-    flux - the photon flux at wvlngth [W m-2 s-1 nm-1]
+    flux - the photon flux at wvlngth [W m-2 nm-1]
     """
 
     wvlngth = wvlngth*(1.0E-9) #convert from nm to m
     flux = 2.0*H*C**2.0/wvlngth**5.0*1.0/(exp(H*C/(wvlngth*KB*T))-1.0)
+    flux = flux*(1.0E-9) #convert back to nm-1
     return flux*pi
 
 def get_blackbody_flux_for_wavelengths(T, wvlngths, \
@@ -42,12 +43,12 @@ def get_blackbody_flux_for_wavelengths(T, wvlngths, \
 
     Returns:
     fluxes - an array of fluxes for the corresponding wavelength values
-             in [W m-2 s-1 nm-1]
+             in [W m-2 nm-1]
     """
 
     fluxes = np.zeros_like(wvlngths)
     for i in range(0,len(wvlngths)):
-        fluxes[i] = blackbody_flux(T, wvlngths[i])*(star_rad/orbital_rad)**2
+        fluxes[i] = blackbody_flux_wavelength(T, wvlngths[i])*(star_rad/orbital_rad)**2
 
     return fluxes
 
@@ -98,77 +99,6 @@ def luminosity(start_wv, end_wv, T):
     return L
 
 
-def show_planet_flux(star_temp, orb_dist, planet_radius):
-    """
-    Generate the data that will be used to show the incident flux on a planet
-    """
-    plnt = Planet(planet_radius, 50)
-
-    star_radius = star_radius_from_temp(star_temp)
-
-    wavelengths = np.linspace(30,3500, 150)
-    fluxes = get_blackbody_flux_for_wavelengths(star_temp, wavelengths,\
-            star_rad=star_radius, orbital_rad=orb_dist)
-
-    t_flux = total_flux(wavelengths, fluxes) #total flux in W m-2 
-
-    start_color = (0,0,255)
-    end_color = (255,0,0)
-    for panel in plnt.panels:
-        angle = panel.get_zenith_angle()
-
-        val = -1
-        if angle >= 0:
-            val = abs(t_flux*sin(pi-angle))
-
-        panel.set_color(linear_color_gradient(start_color, end_color, 0, \
-                t_flux, val))
-
-    plnt.generate_planet_data()
-
-
-
-def rgb_to_hex(rgb):
-    r,g,b = rgb
-    return "#%02x%02x%02x"%(r,g,b)
-
-def color_from_ratio(s_col, e_col, ratio):
-    rs,gs,bs = s_col
-    re,ge,be = e_col
-
-    r = rs*(1.0-ratio) + re*ratio
-    g = gs*(1.0-ratio) + ge*ratio
-    b = bs*(1.0-ratio) + be*ratio
-
-    return (r,g,b)
-
-def linear_color_gradient(start_color, end_color, min_val, max_val, val):
-    """
-    calculate a linear color gradient between the start and end colors.
-
-    Inputs:
-    start_color - the color associated with the min_val [hex color]
-    end_color - the color associated with the max_val [hex color]
-    min_val - the minimum value [float]
-    max_val - the maximum value [float]
-    val - the value a color is needed for [float]
-    
-    Returns:
-    color - the hex color of for the value, val [hex color string]
-    """
-
-    color = 0x000000
-
-    if val >= max_val:
-        color = end_color
-    elif val <= min_val:
-        color = start_color
-    else:
-        ratio = (val - min_val)/(max_val - min_val)
-        color = color_from_ratio(start_color, end_color, ratio)
-
-    return rgb_to_hex(color)
-
 def out_habitable_zone_dist(T):
     """
     Find the outer edge of the habitable zone based on stellar temperature. 
@@ -191,7 +121,8 @@ def out_habitable_zone_dist(T):
             -4.8997E-16*Ts**4
     d = (L/L_sun/s_eff)**0.5
 
-    print("at d S/S_0 is: %0.2f"%(L/(4.0*pi*(d*AU)**2)/1366.0))
+    if DEBUG_PRINT:
+        print("out_habitable_zone_dist(): for T=%0.0f, d=%0.2f AU\n"%(T,d))
     return d
 
 
@@ -201,6 +132,8 @@ def star_radius_from_temp(T):
     """
     Get the estimated radius from the star. This is found using the relation
     found from temp_rad_comp() below
+
+    Returns the star radius in [m]
     """
     return SUN_RAD*T*0.00018647 + 0.00825597
 
@@ -225,11 +158,58 @@ def star_radius_from_temp(T):
 #    plt.legend()
 #    plt.show()
 
-def test():
-    wavelengths = np.linspace(10,5000,150)
-    fluxes = get_blackbody_flux_for_wavelengths(5800.0, wavelengths, star_rad=SUN_RAD,\
-            orbital_rad=AU)
-    tot = total_flux(wavelengths, fluxes)
-    print("Total flux is: %0.2f"%(tot))
 
-#show_planet_flux(3000.0, AU, 20)
+
+def get_photon_flux_for_wavelengths_in_range(wvs, wv_flux, start, end):
+    """
+    Get the photon flux in photons m-2 and W m-2 for the given wavelength and 
+    flux array between the start and end wavelengths.
+
+    Inputs:
+    wvs - an array of wavelengths [nm]
+    wv_flux - an array of uniformly spaced wavelength fluxes [W m-2 nm-1]
+    start - the starting wavelength to consider [nm]
+    end - the ending wavelength to consider [nm]
+
+    Returns:
+    t_flux - the total flux between start and end [W m-2]
+    p_flux - the total photon flux between start and end [photons m-2 s-1]
+    """
+
+    start_ind = (np.abs(wvs-start)).argmin()
+    end_ind = (np.abs(wvs-end)).argmin()
+
+    if end_ind == len(wvs)-1:
+        end_ind -= 1
+
+    t_flux = 0.0
+    p_flux = 0.0
+    width = 0.0
+    for i in range(start_ind,end_ind):
+        width = abs(wvs[i]-wvs[i+1])
+        t_flux += width*wv_flux[i]
+        photon_energy = H*C/(wvs[i]*(1.0E-9))
+        p_flux += width*wv_flux[i]/photon_energy
+
+    return t_flux, p_flux
+
+
+
+def read_solar_flux_data():
+    """
+    Plot the data from http://rredc.nrel.gov/solar/spectra/am1.5/
+
+    See the wikipedia plot of the same data at: https://commons.wikimedia.org/wiki/File:Solar_Spectrum.png
+
+    This function returns the wavelengths array, the array of corresponding 
+    fluxes at TOA and the corresponding fluxes at the surface.
+    """
+    filename = "./ASTMG173.csv"
+    data = np.loadtxt(filename,delimiter=",", skiprows=2)
+    wavelengths = data[:,0]
+    flux = data[:,1]
+    flux_tilt = data[:,2]
+    flux_circ = data[:,3]
+
+    return (wavelengths, flux, flux_circ)
+
