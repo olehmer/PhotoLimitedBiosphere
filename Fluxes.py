@@ -1,13 +1,15 @@
 import numpy as np
 from math import exp, pi
 
-DEBUG_PRINT = True
+
+DEBUG_PRINT = False
 
 H = 6.626E-34 #Planck constant in [J s]
 C = 2.99792458E8 #Speed of light [m s-1]                                          
 KB = 1.38E-23 #Boltzmann constant in [m2 kg s-2 K-1]
 AU = 1.496E11 #1 AU in [m]
 SUN_RAD = 6.957E8 #solar radius [m]
+SIGMA = 5.67E-8 #Stefan Boltzmann constant
 
 def blackbody_flux_wavelength(T, wvlngth):
     """
@@ -78,7 +80,7 @@ def total_flux(wvlngths, fluxes):
 
     return t_flux
 
-def luminosity(start_wv, end_wv, T):
+def luminosity(T):
     """
     Return the total stellar luminosity.
 
@@ -92,12 +94,9 @@ def luminosity(start_wv, end_wv, T):
     """
     
     star_rad = star_radius_from_temp(T)
-    wavelengths = np.linspace(start_wv, end_wv, 200)
-    fluxes = get_blackbody_flux_for_wavelengths(T, wavelengths)
-    t_flux = total_flux(wavelengths, fluxes)
+    t_flux = SIGMA*T**4 
     L = 4.0*pi*star_rad**2*t_flux
     return L
-
 
 def out_habitable_zone_dist(T):
     """
@@ -111,20 +110,46 @@ def out_habitable_zone_dist(T):
     d - the distance to the edge of the outer habitable zone [AU]
     """
 
-    L_sun = luminosity(10.0, 3000.0, 5780.0)
-    L = luminosity(10.0,3000.0,T)
+    L_sun = 3.828E26 #solar luminosity [W]
+    L = luminosity(T)
+
     Ts = T - 5780.0
-    s_eff = 0.3179+\
-            5.413E-5*Ts+\
-            1.5313E-9*Ts**2+\
-            -2.7786E-12*Ts**3+\
-            -4.8997E-16*Ts**4
+    s_eff = 0.3438+\
+            5.8942E-5*Ts+\
+            1.6558E-9*Ts**2+\
+            -3.0045E-12*Ts**3+\
+            -5.2983E-16*Ts**4
     d = (L/L_sun/s_eff)**0.5
 
     if DEBUG_PRINT:
         print("out_habitable_zone_dist(): for T=%0.0f, d=%0.2f AU\n"%(T,d))
     return d
 
+def in_habitable_zone_dist(T):
+    """
+    Find the inner edge of the habitable zone based on stellar temperature. 
+    This function implements equations 2 and 3 of  Kopparapu et al. 2013.
+
+    Input:
+    T - the stellar temperature [K]
+
+    Returns:
+    d - the distance to the edge of the inner habitable zone [AU]
+    """
+
+    L_sun = 3.828E26 #solar luminosity [W] #luminosity(10.0, 3000.0, 5780.0)
+    L = luminosity(T)
+    Ts = T - 5780.0
+    s_eff = 1.0140+\
+            8.1774E-5*Ts+\
+            1.7063E-9*Ts**2+\
+            -4.3241E-12*Ts**3+\
+            -6.6462E-16*Ts**4
+    d = (L/L_sun/s_eff)**0.5
+
+    if DEBUG_PRINT:
+        print("in_habitable_zone_dist(): for T=%0.0f, d=%0.2f AU\n"%(T,d))
+    return d
 
     
 
@@ -135,7 +160,18 @@ def star_radius_from_temp(T):
 
     Returns the star radius in [m]
     """
-    return SUN_RAD*T*0.00018647 + 0.00825597
+    rad = 0
+    if T >= 4200.0: #the upper limit for the Mann (2015) equation
+        #rad = T*0.00018647 + 0.00825597
+        rad = 0.000196203*T - 0.134051
+    elif T >= 2729.0: #the limit where the Mann equation is valid
+        t_mod = T/3500.0
+        rad = 10.554-33.7546*t_mod+35.1909*t_mod**2-11.5928*t_mod**3
+    elif T >= 2300.0:
+        rad = 0.0001*T-0.1389
+    return rad*SUN_RAD
+
+
 
 #def temp_rad_comp():
 #    """
@@ -205,10 +241,10 @@ def read_solar_flux_data():
     fluxes at TOA and the corresponding fluxes at the surface.
     """
     filename = "./ASTMG173.csv"
-    data = np.loadtxt(filename,delimiter=",", skiprows=2)
+    data = np.loadtxt(filename,delimiter=",", skiprows=2) 
     wavelengths = data[:,0]
     flux = data[:,1]
-    flux_tilt = data[:,2]
+    #flux_tilt = data[:,2]
     flux_circ = data[:,3]
 
     return (wavelengths, flux, flux_circ)
