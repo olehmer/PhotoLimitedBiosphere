@@ -110,6 +110,8 @@ def plot_750nm_limit_contours(CS, ax):
     ys_31 = v_31[:,1]
     ax.fill_between(xs_31,ys_31,4200, facecolor="white", alpha=1.0)
 
+    ax.plot(xs_7[3:-3],ys_7[3:-3],"k")
+
 
 def plot_900nm_limit_contours(CS, temps, outer_HZ, ax):
     p_31 = CS.collections[1].get_paths()[0]
@@ -133,6 +135,9 @@ def plot_1300nm_limit_contours(CS, ax):
     xs_31 = v_31[:,0]
     ys_31 = v_31[:,1]
     ax.fill_between(xs_31,ys_31,2300, facecolor="blue", alpha=0.3)
+    print(len(xs_31))
+    ax.plot(xs_31[2:],ys_31[2:], "k")
+
 
     
 def get_photo_scale_factor(wv, wv_lim):
@@ -195,6 +200,17 @@ def generate_single_plot(ax, temps, fluxes, results, \
     ax.plot(outer_HZ/earth_flux, temps, "k", linewidth="2")
     ax.plot(inner_HZ/earth_flux, temps, "k", linewidth="2")
 
+    ax.plot([0.662],[2559],"ko") #TRAPPIST-1e
+    ax.plot([0.382],[2559],"ko") #TRAPPIST-1f
+    ax.plot([0.258],[2559],"ko") #TRAPPIST-1g
+    ax.text(0.46, 2409, "TRAPPIST-1e,f,g", color="black", horizontalalignment="center")
+
+    ax.plot([0.39],[3131],"ro") #LHS 1140b
+    ax.text(0.39, 2981, "LHS 1140b", color="red", horizontalalignment="center")
+
+    ax.plot([0.65],[3050],"bo") #Proxima b
+    ax.text(0.65,2900,"Proxima b",color="blue", horizontalalignment="center")
+
 
 
 
@@ -209,8 +225,8 @@ def plot_photo_limited_regions():
     albedo = 0.3
     
 
-    temps = np.linspace(2300,4200,15)
-    fluxes = np.linspace(0.2*earth_flux,0.9*earth_flux,15) #fluxes in terms of Earth flux
+    temps = np.linspace(2300,4200,30)
+    fluxes = np.linspace(0.2*earth_flux,0.9*earth_flux,30) #fluxes in terms of Earth flux
     results_750nm = np.zeros((len(fluxes),len(temps)))
     results_900nm = np.zeros((len(fluxes),len(temps)))
     results_1100nm = np.zeros((len(fluxes),len(temps)))
@@ -395,10 +411,10 @@ def test_rad():
     plt.show()
 
 
-
-#plot_photo_limited_regions()
+#ORL - these functions generated plots for the paper
+plot_photo_limited_regions()
 #test_rad()
-bjorn_pigment_model_over_temp()
+#bjorn_pigment_model_over_temp()
 
 
 Temp = 2300.0
