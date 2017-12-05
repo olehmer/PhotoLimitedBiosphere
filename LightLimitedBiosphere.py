@@ -4,6 +4,7 @@ from math import exp, log
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from scipy.optimize import fmin
+from random import uniform
 
 
 DEBUG_PRINT = False
@@ -118,25 +119,23 @@ def plot_900nm_limit_contours(CS, temps, outer_HZ, ax):
     v_31 = p_31.vertices
     xs_31 = v_31[:,0]
     ys_31 = v_31[:,1]
-    ax.fill_betweenx(temps, outer_HZ, xs_31[-1], facecolor="blue",alpha=0.3)
-    ax.fill_between(xs_31,ys_31,4200, facecolor="white", alpha=1.0)
+    ax.fill_betweenx(temps, outer_HZ, xs_31[-1], facecolor="blue",alpha=0.3, edgecolor="none")
+    ax.fill_between(xs_31,ys_31,4200, facecolor="white", alpha=1.0, edgecolor="none")
 
     p_7 = CS.collections[0].get_paths()[0]
     v_7 = p_7.vertices
     xs_7 = v_7[:,0]
     ys_7 = v_7[:,1]
     #now fill below the contour
-    ax.fill_between(xs_7,ys_7,2300, facecolor="white", alpha=1.0)
-    ax.fill_between(xs_7,ys_7,2300, facecolor="red", alpha=0.3)
+    ax.fill_between(xs_7,ys_7,2300, facecolor="white", alpha=1.0, edgecolor="none")
+    ax.fill_between(xs_7,ys_7,2300, facecolor="red", alpha=0.3, edgecolor="none")
 
 def plot_1300nm_limit_contours(CS, ax):
     p_31 = CS.collections[1].get_paths()[0]
     v_31 = p_31.vertices
     xs_31 = v_31[:,0]
     ys_31 = v_31[:,1]
-    ax.fill_between(xs_31,ys_31,2300, facecolor="blue", alpha=0.3)
-    print(len(xs_31))
-    ax.plot(xs_31[2:],ys_31[2:], "k")
+    ax.fill_between(xs_31,ys_31,2300, facecolor="blue", alpha=0.3, edgecolor="none")
 
 
     
@@ -181,7 +180,8 @@ def generate_single_plot(ax, temps, fluxes, results, \
     fs = 14
     if axnum==1:
         ax.text(0.85,4000, "A", fontsize=fs)
-        plot_750nm_limit_contours(CS, ax)
+        #plot_750nm_limit_contours(CS, ax)
+        plot_900nm_limit_contours(CS, temps, outer_HZ/earth_flux, ax)
     elif axnum==2:
         ax.text(0.85,4000, "B", fontsize=fs)
         plot_900nm_limit_contours(CS, temps, outer_HZ/earth_flux, ax)
@@ -191,6 +191,7 @@ def generate_single_plot(ax, temps, fluxes, results, \
     elif axnum==4:
         ax.text(0.85,4000, "D", fontsize=fs)
         plot_1300nm_limit_contours(CS, ax)
+
 
 
     ax.fill_betweenx(temps, inner_HZ/earth_flux, 0.9, facecolor="white")
@@ -204,6 +205,9 @@ def generate_single_plot(ax, temps, fluxes, results, \
     ax.plot([0.382],[2559],"ko") #TRAPPIST-1f
     ax.plot([0.258],[2559],"ko") #TRAPPIST-1g
     ax.text(0.46, 2409, "TRAPPIST-1e,f,g", color="black", horizontalalignment="center")
+    #ax.text(0.258, 2659, "g", color="black", horizontalalignment="center")
+    #ax.text(0.382, 2659, "f", color="black", horizontalalignment="center")
+    #ax.text(0.662, 2659, "e", color="black", horizontalalignment="center")
 
     ax.plot([0.39],[3131],"ro") #LHS 1140b
     ax.text(0.39, 2981, "LHS 1140b", color="red", horizontalalignment="center")
@@ -212,7 +216,64 @@ def generate_single_plot(ax, temps, fluxes, results, \
     ax.text(0.65,2900,"Proxima b",color="blue", horizontalalignment="center")
 
 
+def get_net_oxygen(sink_flux, burial_rate, photon_fraction):
+    """
+    The calculated outgassing rate (see paper) is ~5 Tmoles/yr on the modern
+    Earth. Half of that is done on land, half in the ocean.
 
+    """
+
+    
+    land_fraction = 1.0 if photon_fraction > 0.31 else photon_fraction/0.31
+    ocean_fraction = 1.0 if photon_fraction > 0.07 else photon_fraction/0.07
+
+    land_contribution = 2.5*land_fraction
+    ocean_contribution = 2.5*ocean_fraction
+
+
+
+def plot_oxic_vs_anoxic():
+    """
+    Plot the potential redox state of the atmosphere based on Earth's sources
+    and sinks for oxygen.
+    """
+
+
+    earth_p_flux = get_earth_surface_flux(400,700)[1]
+    print("Earth photon flux (400-700nm): %2.3e"%(earth_p_flux))
+    earth_flux = 1361.0
+    albedo = 0.3
+    photon_limit = 750.0
+    sink_min = 4.5 #the minimum rate in Tera moles of outgased reductant
+    sink_max = 6.9 #the max outgased rate in Tera moles of reductants
+    burial_min = 0.001 #the min fraction of organic carbon buried
+    burial_max = 0.002 #the max fraction of organic carbon buried
+    
+
+    temps = np.linspace(2300,4200,30)
+    fluxes = np.linspace(0.2*earth_flux,0.9*earth_flux,30) #fluxes in terms of Earth flux
+    results = np.zeros((len(fluxes),len(temps)))
+
+    outer_HZ = np.zeros_like(temps)
+    inner_HZ = np.zeros_like(temps)
+
+    for i in range(0,len(temps)):
+        outer_HZ[i] = get_outer_HZ_in_flux(temps[i])
+        inner_HZ[i] = get_inner_HZ_in_flux(temps[i])
+        star_rad = Fluxes.star_radius_from_temp(temps[i])
+
+        for j in range(0,len(fluxes)):
+            orb = get_dist_from_flux(fluxes[j],temps[i])
+            wv = bjorn_opt_pigment(temps[i], star_rad, orb)
+
+            p_flux = blackbody_flux(temps[i],orb,400.0,photon_limit)[1]
+            scale_factor = get_photo_scale_factor(wv, photon_limit)
+            useable_photon_flux = p_flux/earth_p_flux*(1.0-albedo)*scale_factor
+
+            b_rate = uniform(burial_min, burial_max)
+            sink_rate = uniform(sink_min, sink_max)
+
+ 
 
 def plot_photo_limited_regions():
     """
@@ -220,7 +281,8 @@ def plot_photo_limited_regions():
     of Earth's photon flux.
     """
 
-    earth_p_flux = get_earth_surface_flux(400,750)[1]
+    earth_p_flux = get_earth_surface_flux(400,700)[1]
+    print("Earth photon flux (400-700nm): %2.3e"%(earth_p_flux))
     earth_flux = 1366.0
     albedo = 0.3
     
@@ -260,6 +322,49 @@ def plot_photo_limited_regions():
             results_1500nm[i][j] = p_flux/earth_p_flux*(1.0-albedo)*scale_factor
 
 
+    ####################
+    # This code is the code for making the isobar plot Tori asked for
+    """
+    def cont_string(num):
+        string = "%2.0f%%"%(num*100)
+        return string
+    contours = [0.01, 0.05, 0.1, 0.15, 0.20, 0.25, 0.30, 0.4, 0.50, 0.75, 1.0] #ORL TD
+
+    plt.gca().invert_xaxis()
+
+    CS = plt.contour(fluxes/earth_flux,temps,results_750nm,contours) #ORL TD
+    plt.clabel(CS, inline=1, fontsize=10, fmt=cont_string, manual=True) #ORL TD
+
+    
+    plt.fill_betweenx(temps, inner_HZ/earth_flux, 0.9, facecolor="white")
+    plt.fill_betweenx(temps, outer_HZ/earth_flux, 0.2, facecolor="white")
+
+    plt.plot(outer_HZ/earth_flux, temps, "k", linewidth="2")
+    plt.plot(inner_HZ/earth_flux, temps, "k", linewidth="2")
+
+    plt.plot([0.662],[2559],"ko") #TRAPPIST-1e
+    plt.plot([0.382],[2559],"ko") #TRAPPIST-1f
+    plt.plot([0.258],[2559],"ko") #TRAPPIST-1g
+    plt.text(0.46, 2409, "TRAPPIST-1e,f,g", color="black", horizontalalignment="center")
+
+    plt.plot([0.39],[3131],"ro") #LHS 1140b
+    plt.text(0.39, 2981, "LHS 1140b", color="red", horizontalalignment="center")
+
+    plt.plot([0.65],[3050],"bo") #Proxima b
+    plt.text(0.65,2900,"Proxima b",color="blue", horizontalalignment="center")
+
+
+    plt.xlabel(r"Incident Flux [$S/S_{\oplus}$]")
+
+    plt.ylabel("Stellar Temperature [K]")
+
+    
+
+    plt.show()
+    return
+    """
+    ####################
+
     f, ((ax1, ax2),(ax3,ax4)) = plt.subplots(2,2, sharex='col', sharey='row')
     f.subplots_adjust(hspace=0.05, wspace=0.12)
     """
@@ -289,6 +394,8 @@ def plot_photo_limited_regions():
 
     generate_single_plot(ax4, temps, fluxes, results_1500nm, \
         inner_HZ, outer_HZ, earth_flux, 4)
+
+
 
 
 
@@ -413,9 +520,11 @@ def test_rad():
 
 #ORL - these functions generated plots for the paper
 plot_photo_limited_regions()
-#test_rad()
 #bjorn_pigment_model_over_temp()
+plot_oxic_vs_anoxic()
 
+#this function plots our stellar temperature radius relationship
+#test_rad()
 
 Temp = 2300.0
 print(Fluxes.star_radius_from_temp(Temp))
