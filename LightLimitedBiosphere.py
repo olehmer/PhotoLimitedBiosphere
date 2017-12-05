@@ -221,14 +221,27 @@ def get_net_oxygen(sink_flux, burial_rate, photon_fraction):
     The calculated outgassing rate (see paper) is ~5 Tmoles/yr on the modern
     Earth. Half of that is done on land, half in the ocean.
 
+    Inputs:
+    sink_flux - the oxygen removed form sinks like volcanism [Tmol/yr]
+    burial_rate - fraction of organic carbon buried per year
+    photon_fraction - the incident photon count [photon m-2 s-1] compared to Earth's
+
+    Returns:
+    the total oxygen budget. Negative value mean reducing atmosphere, positive 
+    mean oxidized
+
     """
 
     
+    #calculate the fraction of available light, compared to Earth's usage
     land_fraction = 1.0 if photon_fraction > 0.31 else photon_fraction/0.31
     ocean_fraction = 1.0 if photon_fraction > 0.07 else photon_fraction/0.07
 
     land_contribution = 2.5*land_fraction
     ocean_contribution = 2.5*ocean_fraction
+
+    total_oxygen = (land_contribution+ocean_contribution)*burial_rate
+    return total_oxygen - sink_flux
 
 
 
@@ -243,6 +256,8 @@ def plot_oxic_vs_anoxic():
     print("Earth photon flux (400-700nm): %2.3e"%(earth_p_flux))
     earth_flux = 1361.0
     albedo = 0.3
+    OP_prod = 5.0 #oxygen production in Tmol a year from OP
+
     photon_limit = 750.0
     sink_min = 4.5 #the minimum rate in Tera moles of outgased reductant
     sink_max = 6.9 #the max outgased rate in Tera moles of reductants
@@ -272,6 +287,16 @@ def plot_oxic_vs_anoxic():
 
             b_rate = uniform(burial_min, burial_max)
             sink_rate = uniform(sink_min, sink_max)
+
+            net_oxygen = get_net_oxygen(sink_rate, b_rate, useable_photon_flux)
+
+            results[i][j] = net_oxygen
+
+    cm = plt.cm.get_cmap('RdYlBu')
+    sc = plt.scatter(fluxes, temps, c=results, cmap=cm)
+    plt.colorbar(sc)
+    plt.gca().invert_xaxis()
+    plt.show()
 
  
 
@@ -519,7 +544,7 @@ def test_rad():
 
 
 #ORL - these functions generated plots for the paper
-plot_photo_limited_regions()
+#plot_photo_limited_regions()
 #bjorn_pigment_model_over_temp()
 plot_oxic_vs_anoxic()
 
