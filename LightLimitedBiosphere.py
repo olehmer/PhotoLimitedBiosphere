@@ -215,8 +215,42 @@ def generate_single_plot(ax, temps, fluxes, results, \
     ax.plot([0.65],[3050],"bo") #Proxima b
     ax.text(0.65,2900,"Proxima b",color="blue", horizontalalignment="center")
 
+def test_oxic_probability(photon_fraction):
+    sink_min = 4.5 #the minimum rate in Tera moles of outgased reductant
+    sink_max = 6.9 #the max outgased rate in Tera moles of reductants
+    burial_min = 0.001 #the min fraction of organic carbon buried
+    burial_max = 0.002 #the max fraction of organic carbon buried
 
-def get_net_oxygen(sink_flux, burial_rate, photon_fraction):
+    oxygen_flux_from_OP = 3333.0 #total oxygen flux in Tmol (converted from kg)
+
+
+    
+    #calculate the fraction of available light, compared to Earth's usage
+    land_fraction = 1.0 if photon_fraction > 0.31 else photon_fraction/0.31
+    ocean_fraction = 1.0 if photon_fraction > 0.07 else photon_fraction/0.07
+
+    count = 0
+    total = 10000
+    for i in range(0,total):
+        b_rate = uniform(burial_min, burial_max)
+        sink_rate = uniform(sink_min, sink_max)
+
+
+        land_contribution = oxygen_flux_from_OP/2.0*land_fraction
+        ocean_contribution = oxygen_flux_from_OP/2.0*ocean_fraction
+
+        total_oxygen = (land_contribution+ocean_contribution)*b_rate-sink_rate
+
+        if total_oxygen > 0:
+            count += 1
+
+    percent = 100.0*count/total
+    print("%d out of %d were oxic (%2.0f%%)"%(count,total,percent))
+    return percent
+
+
+
+def get_net_oxygen(photon_fraction):
     """
     The calculated outgassing rate (see paper) is ~5 Tmoles/yr on the modern
     Earth. Half of that is done on land, half in the ocean.
@@ -231,17 +265,26 @@ def get_net_oxygen(sink_flux, burial_rate, photon_fraction):
     mean oxidized
 
     """
+    sink_min = 4.5 #the minimum rate in Tera moles of outgased reductant
+    sink_max = 6.9 #the max outgased rate in Tera moles of reductants
+    burial_min = 0.001 #the min fraction of organic carbon buried
+    burial_max = 0.002 #the max fraction of organic carbon buried
+
+    oxygen_flux_from_OP = 3333.0 #total oxygen flux in Tmol (converted from kg)
+
+    b_rate = uniform(burial_min, burial_max)
+    sink_rate = uniform(sink_min, sink_max)
 
     
     #calculate the fraction of available light, compared to Earth's usage
     land_fraction = 1.0 if photon_fraction > 0.31 else photon_fraction/0.31
     ocean_fraction = 1.0 if photon_fraction > 0.07 else photon_fraction/0.07
 
-    land_contribution = 2.5*land_fraction
-    ocean_contribution = 2.5*ocean_fraction
+    land_contribution = oxygen_flux_from_OP/2.0*land_fraction
+    ocean_contribution = oxygen_flux_from_OP/2.0*ocean_fraction
 
-    total_oxygen = (land_contribution+ocean_contribution)*burial_rate
-    return total_oxygen - sink_flux
+    total_oxygen = (land_contribution+ocean_contribution)*b_rate
+    return total_oxygen - sink_rate 
 
 
 
@@ -256,7 +299,6 @@ def plot_oxic_vs_anoxic():
     print("Earth photon flux (400-700nm): %2.3e"%(earth_p_flux))
     earth_flux = 1361.0
     albedo = 0.3
-    OP_prod = 5.0 #oxygen production in Tmol a year from OP
 
     photon_limit = 750.0
     sink_min = 4.5 #the minimum rate in Tera moles of outgased reductant
@@ -285,17 +327,25 @@ def plot_oxic_vs_anoxic():
             scale_factor = get_photo_scale_factor(wv, photon_limit)
             useable_photon_flux = p_flux/earth_p_flux*(1.0-albedo)*scale_factor
 
-            b_rate = uniform(burial_min, burial_max)
-            sink_rate = uniform(sink_min, sink_max)
+            net_oxygen = get_net_oxygen(useable_photon_flux)
+            print("for temp: %4.0f, flux: %0.2f, oxygen is: %2.2f"%(temps[i],fluxes[j]/earth_flux,net_oxygen))
 
-            net_oxygen = get_net_oxygen(sink_rate, b_rate, useable_photon_flux)
+            results[i][j] = test_oxic_probability(useable_photon_flux) #net_oxygen
 
-            results[i][j] = net_oxygen
 
-    cm = plt.cm.get_cmap('RdYlBu')
-    sc = plt.scatter(fluxes, temps, c=results, cmap=cm)
-    plt.colorbar(sc)
+
+    cm = plt.cm.get_cmap('winter')
+    #sc = plt.scatter(fluxes, temps, c=results, cmap=cm)
+    sc = plt.imshow(results, cmap=cm, extent=[np.min(fluxes)/earth_flux, \
+            np.max(fluxes)/earth_flux, np.min(temps), np.max(temps)], aspect='auto')
+    cbar = plt.colorbar(sc)
+    #cbar.set_clim(0,100)
     plt.gca().invert_xaxis()
+    plt.gca().invert_yaxis()
+
+    #CS = plt.contour(fluxes/earth_flux,temps,results) #ORL TD
+    #plt.clabel(CS, inline=1, fontsize=10)
+    #plt.gca().invert_xaxis()
     plt.show()
 
  
@@ -547,6 +597,7 @@ def test_rad():
 #plot_photo_limited_regions()
 #bjorn_pigment_model_over_temp()
 plot_oxic_vs_anoxic()
+#test_oxic_probability()
 
 #this function plots our stellar temperature radius relationship
 #test_rad()
