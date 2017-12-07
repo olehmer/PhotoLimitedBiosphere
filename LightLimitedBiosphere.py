@@ -234,6 +234,8 @@ def test_oxic_probability(photon_fraction):
     for i in range(0,total):
         b_rate = uniform(burial_min, burial_max)
         sink_rate = uniform(sink_min, sink_max)
+        #b_rate = np.random.normal(0.0015, 0.00025)
+        #sink_rate = np.random.normal(5.0, 1.2)
 
 
         land_contribution = oxygen_flux_from_OP/2.0*land_fraction
@@ -245,7 +247,7 @@ def test_oxic_probability(photon_fraction):
             count += 1
 
     percent = 100.0*count/total
-    print("%d out of %d were oxic (%2.0f%%)"%(count,total,percent))
+    #print("%d out of %d were oxic (%2.0f%%)"%(count,total,percent))
     return percent
 
 
@@ -286,6 +288,48 @@ def get_net_oxygen(photon_fraction):
     total_oxygen = (land_contribution+ocean_contribution)*b_rate
     return total_oxygen - sink_rate 
 
+def generate_single_oxic_prop_plot(ax, temps, fluxes, results, \
+        inner_HZ, outer_HZ, earth_flux, cm, axnum):
+
+    sc = ax.imshow(results, cmap=cm, extent=[np.min(fluxes)/earth_flux, \
+            np.max(fluxes)/earth_flux, np.max(temps), np.min(temps)], aspect='auto')
+
+    fs = 14
+    if axnum==1:
+        ax.text(0.85,4000, "A", fontsize=fs)
+    elif axnum==2:
+        ax.text(0.85,4000, "B", fontsize=fs)
+    elif axnum==3:
+        ax.text(0.85,4000, "C", fontsize=fs)
+    elif axnum==4:
+        ax.text(0.85,4000, "D", fontsize=fs)
+
+
+    ax.fill_betweenx(temps, inner_HZ/earth_flux, 0.9, facecolor="white")
+    ax.fill_betweenx(temps, outer_HZ/earth_flux, 0.2, facecolor="white")
+
+    
+    ax.plot(outer_HZ/earth_flux, temps, "k", linewidth="2")
+    ax.plot(inner_HZ/earth_flux, temps, "k", linewidth="2")
+
+    ax.plot([0.662],[2559],"ko") #TRAPPIST-1e
+    ax.plot([0.382],[2559],"ko") #TRAPPIST-1f
+    ax.plot([0.258],[2559],"ko") #TRAPPIST-1g
+    ax.text(0.46, 2409, "TRAPPIST-1e,f,g", color="black", horizontalalignment="center")
+    #ax.text(0.258, 2659, "g", color="black", horizontalalignment="center")
+    #ax.text(0.382, 2659, "f", color="black", horizontalalignment="center")
+    #ax.text(0.662, 2659, "e", color="black", horizontalalignment="center")
+
+    ax.plot([0.39],[3131],"ro") #LHS 1140b
+    ax.text(0.39, 2981, "LHS 1140b", color="red", horizontalalignment="center")
+
+    ax.plot([0.65],[3050],"bo") #Proxima b
+    ax.text(0.65,2900,"Proxima b",color="blue", horizontalalignment="center")
+
+    ax.set_xlim(0.2,0.9)
+    ax.set_ylim(2300,4200)
+    return sc
+
 
 
 def plot_oxic_vs_anoxic():
@@ -299,17 +343,13 @@ def plot_oxic_vs_anoxic():
     print("Earth photon flux (400-700nm): %2.3e"%(earth_p_flux))
     earth_flux = 1361.0
     albedo = 0.3
-
-    photon_limit = 750.0
-    sink_min = 4.5 #the minimum rate in Tera moles of outgased reductant
-    sink_max = 6.9 #the max outgased rate in Tera moles of reductants
-    burial_min = 0.001 #the min fraction of organic carbon buried
-    burial_max = 0.002 #the max fraction of organic carbon buried
     
-
     temps = np.linspace(2300,4200,30)
     fluxes = np.linspace(0.2*earth_flux,0.9*earth_flux,30) #fluxes in terms of Earth flux
-    results = np.zeros((len(fluxes),len(temps)))
+    results_750 = np.zeros((len(fluxes),len(temps)))
+    results_900 = np.zeros((len(fluxes),len(temps)))
+    results_1100 = np.zeros((len(fluxes),len(temps)))
+    results_1500 = np.zeros((len(fluxes),len(temps)))
 
     outer_HZ = np.zeros_like(temps)
     inner_HZ = np.zeros_like(temps)
@@ -323,29 +363,75 @@ def plot_oxic_vs_anoxic():
             orb = get_dist_from_flux(fluxes[j],temps[i])
             wv = bjorn_opt_pigment(temps[i], star_rad, orb)
 
+            #750 nm
+            photon_limit = 750.0
             p_flux = blackbody_flux(temps[i],orb,400.0,photon_limit)[1]
             scale_factor = get_photo_scale_factor(wv, photon_limit)
             useable_photon_flux = p_flux/earth_p_flux*(1.0-albedo)*scale_factor
-
             net_oxygen = get_net_oxygen(useable_photon_flux)
-            print("for temp: %4.0f, flux: %0.2f, oxygen is: %2.2f"%(temps[i],fluxes[j]/earth_flux,net_oxygen))
+            results_750[i][j] = test_oxic_probability(useable_photon_flux) #net_oxygen
 
-            results[i][j] = test_oxic_probability(useable_photon_flux) #net_oxygen
+            #900 nm
+            photon_limit = 900.0
+            p_flux = blackbody_flux(temps[i],orb,400.0,photon_limit)[1]
+            scale_factor = get_photo_scale_factor(wv, photon_limit)
+            useable_photon_flux = p_flux/earth_p_flux*(1.0-albedo)*scale_factor
+            net_oxygen = get_net_oxygen(useable_photon_flux)
+            results_900[i][j] = test_oxic_probability(useable_photon_flux) 
 
 
+            #1100 nm
+            photon_limit = 1100.0
+            p_flux = blackbody_flux(temps[i],orb,400.0,photon_limit)[1]
+            scale_factor = get_photo_scale_factor(wv, photon_limit)
+            useable_photon_flux = p_flux/earth_p_flux*(1.0-albedo)*scale_factor
+            net_oxygen = get_net_oxygen(useable_photon_flux)
+            results_1100[i][j] = test_oxic_probability(useable_photon_flux) 
+
+            #1500 nm
+            photon_limit = 1500.0
+            p_flux = blackbody_flux(temps[i],orb,400.0,photon_limit)[1]
+            scale_factor = get_photo_scale_factor(wv, photon_limit)
+            useable_photon_flux = p_flux/earth_p_flux*(1.0-albedo)*scale_factor
+            net_oxygen = get_net_oxygen(useable_photon_flux)
+            results_1500[i][j] = test_oxic_probability(useable_photon_flux) 
+  
+            #print("for temp: %4.0f, flux: %0.2f, oxygen is: %2.2f"%\
+            #        (temps[i],fluxes[j]/earth_flux,net_oxygen))
+
+
+    #generate the plots
+    f, ((ax1, ax2),(ax3,ax4)) = plt.subplots(2,2, sharex='col', sharey='row')
+    f.subplots_adjust(hspace=0.05, wspace=0.12)
 
     cm = plt.cm.get_cmap('winter')
-    #sc = plt.scatter(fluxes, temps, c=results, cmap=cm)
-    sc = plt.imshow(results, cmap=cm, extent=[np.min(fluxes)/earth_flux, \
-            np.max(fluxes)/earth_flux, np.min(temps), np.max(temps)], aspect='auto')
-    cbar = plt.colorbar(sc)
-    #cbar.set_clim(0,100)
-    plt.gca().invert_xaxis()
-    plt.gca().invert_yaxis()
 
-    #CS = plt.contour(fluxes/earth_flux,temps,results) #ORL TD
-    #plt.clabel(CS, inline=1, fontsize=10)
-    #plt.gca().invert_xaxis()
+    generate_single_oxic_prop_plot(ax1, temps, fluxes, results_750, \
+        inner_HZ, outer_HZ, earth_flux, cm, 1)
+
+    generate_single_oxic_prop_plot(ax2, temps, fluxes, results_900, \
+        inner_HZ, outer_HZ, earth_flux, cm, 2)
+
+    generate_single_oxic_prop_plot(ax3, temps, fluxes, results_1100, \
+        inner_HZ, outer_HZ, earth_flux, cm, 3)
+
+    sc = generate_single_oxic_prop_plot(ax4, temps, fluxes, results_1500, \
+        inner_HZ, outer_HZ, earth_flux, cm, 4)
+
+    cbar = plt.colorbar(sc, ax=[ax1,ax2,ax3,ax4], \
+            label="% Chance Atmosphere is Oxic")
+
+    ax1.invert_xaxis()
+    ax1.invert_yaxis()
+    ax2.invert_xaxis()
+    ax2.invert_yaxis()
+
+    ax4.set_xlabel(r"Incident Flux [$S/S_{\oplus}$]")
+    ax3.set_xlabel(r"Incident Flux [$S/S_{\oplus}$]")
+
+    ax1.set_ylabel("Stellar Temperature [K]")
+    ax3.set_ylabel("Stellar Temperature [K]")
+
     plt.show()
 
  
