@@ -229,25 +229,30 @@ def test_oxic_probability(photon_fraction):
     land_fraction = 1.0 if photon_fraction > 0.31 else photon_fraction/0.31
     ocean_fraction = 1.0 if photon_fraction > 0.07 else photon_fraction/0.07
 
-    count = 0
-    total = 10000
-    for i in range(0,total):
-        b_rate = uniform(burial_min, burial_max)
-        sink_rate = uniform(sink_min, sink_max)
-        #b_rate = np.random.normal(0.0015, 0.00025)
-        #sink_rate = np.random.normal(5.0, 1.2)
+    #count = 0
+    #total = 10000
+    #for i in range(0,total):
+    #    b_rate = uniform(burial_min, burial_max)
+    #    sink_rate = uniform(sink_min, sink_max)
+    #    #b_rate = np.random.normal(0.0015, 0.00025)
+    #    #sink_rate = np.random.normal(5.0, 1.2)
 
 
-        land_contribution = oxygen_flux_from_OP/2.0*land_fraction
-        ocean_contribution = oxygen_flux_from_OP/2.0*ocean_fraction
+    #    land_contribution = oxygen_flux_from_OP/2.0*land_fraction
+    #    ocean_contribution = oxygen_flux_from_OP/2.0*ocean_fraction
 
-        total_oxygen = (land_contribution+ocean_contribution)*b_rate-sink_rate
+    #    total_oxygen = (land_contribution+ocean_contribution)*b_rate-sink_rate
 
-        if total_oxygen > 0:
-            count += 1
+    #    if total_oxygen > 0:
+    #        count += 1
 
-    percent = 100.0*count/total
+    #percent = 100.0*count/total
     #print("%d out of %d were oxic (%2.0f%%)"%(count,total,percent))
+    burial_rate = 0.00171
+    land_contribution = oxygen_flux_from_OP/2.0*land_fraction
+    ocean_contribution = oxygen_flux_from_OP/2.0*ocean_fraction
+    total_oxygen = (land_contribution+ocean_contribution)*burial_rate
+    percent = total_oxygen/(oxygen_flux_from_OP*burial_rate)
     return percent
 
 
@@ -288,11 +293,18 @@ def get_net_oxygen(photon_fraction):
     total_oxygen = (land_contribution+ocean_contribution)*b_rate
     return total_oxygen - sink_rate 
 
+
 def generate_single_oxic_prop_plot(ax, temps, fluxes, results, \
         inner_HZ, outer_HZ, earth_flux, cm, axnum):
 
     sc = ax.imshow(results, cmap=cm, extent=[np.min(fluxes)/earth_flux, \
-            np.max(fluxes)/earth_flux, np.max(temps), np.min(temps)], aspect='auto')
+            np.max(fluxes)/earth_flux, np.max(temps), np.min(temps)], \
+            aspect='auto', alpha=0.5)
+
+    contours = [0.79, 0.99]
+    CS = ax.contour(fluxes/earth_flux,temps,results, contours,\
+            linestyles=["dotted", "dashed"], colors="black", linewidth=2, \
+            alpha=0.9)
 
     fs = 14
     if axnum==1:
@@ -305,26 +317,29 @@ def generate_single_oxic_prop_plot(ax, temps, fluxes, results, \
         ax.text(0.85,4000, "D", fontsize=fs)
 
 
-    ax.fill_betweenx(temps, inner_HZ/earth_flux, 0.9, facecolor="white")
-    ax.fill_betweenx(temps, outer_HZ/earth_flux, 0.2, facecolor="white")
+    ax.fill_betweenx(temps, inner_HZ/earth_flux, 0.9, facecolor="white", zorder=10)
+    ax.fill_betweenx(temps, outer_HZ/earth_flux, 0.2, facecolor="white", zorder=10)
 
     
-    ax.plot(outer_HZ/earth_flux, temps, "k", linewidth="2")
-    ax.plot(inner_HZ/earth_flux, temps, "k", linewidth="2")
+    ax.plot(outer_HZ/earth_flux, temps, "k", linewidth="2", zorder=11)
+    ax.plot(inner_HZ/earth_flux, temps, "k", linewidth="2", zorder=11)
 
     ax.plot([0.662],[2559],"ko") #TRAPPIST-1e
     ax.plot([0.382],[2559],"ko") #TRAPPIST-1f
     ax.plot([0.258],[2559],"ko") #TRAPPIST-1g
-    ax.text(0.46, 2409, "TRAPPIST-1e,f,g", color="black", horizontalalignment="center")
+    ax.text(0.46, 2409, "TRAPPIST-1e,f,g", color="black", \
+            horizontalalignment="center", zorder=12)
     #ax.text(0.258, 2659, "g", color="black", horizontalalignment="center")
     #ax.text(0.382, 2659, "f", color="black", horizontalalignment="center")
     #ax.text(0.662, 2659, "e", color="black", horizontalalignment="center")
 
     ax.plot([0.39],[3131],"ro") #LHS 1140b
-    ax.text(0.39, 2981, "LHS 1140b", color="red", horizontalalignment="center")
+    ax.text(0.39, 2981, "LHS 1140b", color="red", \
+            horizontalalignment="center", zorder=12)
 
     ax.plot([0.65],[3050],"bo") #Proxima b
-    ax.text(0.65,2900,"Proxima b",color="blue", horizontalalignment="center")
+    ax.text(0.65,2900,"Proxima b",color="blue", horizontalalignment="center",\
+            zorder=12)
 
     ax.set_xlim(0.2,0.9)
     ax.set_ylim(2300,4200)
@@ -344,8 +359,8 @@ def plot_oxic_vs_anoxic():
     earth_flux = 1361.0
     albedo = 0.3
     
-    temps = np.linspace(2300,4200,30)
-    fluxes = np.linspace(0.2*earth_flux,0.9*earth_flux,30) #fluxes in terms of Earth flux
+    temps = np.linspace(2300,4200,40)
+    fluxes = np.linspace(0.2*earth_flux,0.9*earth_flux,40) #fluxes in terms of Earth flux
     results_750 = np.zeros((len(fluxes),len(temps)))
     results_900 = np.zeros((len(fluxes),len(temps)))
     results_1100 = np.zeros((len(fluxes),len(temps)))
@@ -404,7 +419,7 @@ def plot_oxic_vs_anoxic():
     f, ((ax1, ax2),(ax3,ax4)) = plt.subplots(2,2, sharex='col', sharey='row')
     f.subplots_adjust(hspace=0.05, wspace=0.12)
 
-    cm = plt.cm.get_cmap('winter')
+    cm = plt.cm.get_cmap('bwr')
 
     generate_single_oxic_prop_plot(ax1, temps, fluxes, results_750, \
         inner_HZ, outer_HZ, earth_flux, cm, 1)
@@ -419,7 +434,8 @@ def plot_oxic_vs_anoxic():
         inner_HZ, outer_HZ, earth_flux, cm, 4)
 
     cbar = plt.colorbar(sc, ax=[ax1,ax2,ax3,ax4], \
-            label="% Chance Atmosphere is Oxic")
+            label=r"Fraction of Modern Earth's Net O$_{2}$")
+    cbar.solids.set_edgecolor("face")
 
     ax1.invert_xaxis()
     ax1.invert_yaxis()
