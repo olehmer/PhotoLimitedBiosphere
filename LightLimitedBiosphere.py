@@ -436,6 +436,7 @@ def plot_oxic_vs_anoxic():
     cbar = plt.colorbar(sc, ax=[ax1,ax2,ax3,ax4], \
             label=r"Fraction of Modern Earth's Net O$_{2}$")
     cbar.solids.set_edgecolor("face")
+    cbar.solids.set_alpha(0.5)
 
     ax1.invert_xaxis()
     ax1.invert_yaxis()
