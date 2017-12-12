@@ -221,6 +221,12 @@ def test_oxic_probability(photon_fraction):
     burial_min = 0.001 #the min fraction of organic carbon buried
     burial_max = 0.002 #the max fraction of organic carbon buried
 
+    sink_mean = 5.7
+    sink_std_dev = 0.6
+
+    burial_mean = 0.0015
+    burial_std_dev = 0.00025
+
     oxygen_flux_from_OP = 3333.0 #total oxygen flux in Tmol (converted from kg)
 
 
@@ -235,7 +241,7 @@ def test_oxic_probability(photon_fraction):
     #    b_rate = uniform(burial_min, burial_max)
     #    sink_rate = uniform(sink_min, sink_max)
     #    #b_rate = np.random.normal(0.0015, 0.00025)
-    #    #sink_rate = np.random.normal(5.0, 1.2)
+    #    #sink_rate = np.random.normal(5.7, 0.6)
 
 
     #    land_contribution = oxygen_flux_from_OP/2.0*land_fraction
@@ -248,6 +254,7 @@ def test_oxic_probability(photon_fraction):
 
     #percent = 100.0*count/total
     #print("%d out of %d were oxic (%2.0f%%)"%(count,total,percent))
+
     burial_rate = 0.00171
     land_contribution = oxygen_flux_from_OP/2.0*land_fraction
     ocean_contribution = oxygen_flux_from_OP/2.0*ocean_fraction
@@ -279,8 +286,8 @@ def get_net_oxygen(photon_fraction):
 
     oxygen_flux_from_OP = 3333.0 #total oxygen flux in Tmol (converted from kg)
 
-    b_rate = uniform(burial_min, burial_max)
-    sink_rate = uniform(sink_min, sink_max)
+    b_rate = 0.00171 #uniform(burial_min, burial_max)
+    sink_rate = 5.7 #uniform(sink_min, sink_max)
 
     
     #calculate the fraction of available light, compared to Earth's usage
@@ -299,11 +306,11 @@ def generate_single_oxic_prop_plot(ax, temps, fluxes, results, \
 
     sc = ax.imshow(results, cmap=cm, extent=[np.min(fluxes)/earth_flux, \
             np.max(fluxes)/earth_flux, np.max(temps), np.min(temps)], \
-            aspect='auto', alpha=0.5)
+            aspect='auto', alpha=1.0, vmin=0.0, vmax=1.0)
 
-    contours = [0.79, 0.99]
+    contours = [0.99]
     CS = ax.contour(fluxes/earth_flux,temps,results, contours,\
-            linestyles=["dotted", "dashed"], colors="black", linewidth=2, \
+            linestyles=["dashed"], colors="black", linewidth=2, \
             alpha=0.9)
 
     fs = 14
@@ -359,8 +366,8 @@ def plot_oxic_vs_anoxic():
     earth_flux = 1361.0
     albedo = 0.3
     
-    temps = np.linspace(2300,4200,40)
-    fluxes = np.linspace(0.2*earth_flux,0.9*earth_flux,40) #fluxes in terms of Earth flux
+    temps = np.linspace(2300,4200,30)
+    fluxes = np.linspace(0.2*earth_flux,0.9*earth_flux,30) #fluxes in terms of Earth flux
     results_750 = np.zeros((len(fluxes),len(temps)))
     results_900 = np.zeros((len(fluxes),len(temps)))
     results_1100 = np.zeros((len(fluxes),len(temps)))
@@ -419,9 +426,9 @@ def plot_oxic_vs_anoxic():
     f, ((ax1, ax2),(ax3,ax4)) = plt.subplots(2,2, sharex='col', sharey='row')
     f.subplots_adjust(hspace=0.05, wspace=0.12)
 
-    cm = plt.cm.get_cmap('bwr')
+    cm = plt.cm.get_cmap('spring')
 
-    generate_single_oxic_prop_plot(ax1, temps, fluxes, results_750, \
+    sc = generate_single_oxic_prop_plot(ax1, temps, fluxes, results_750, \
         inner_HZ, outer_HZ, earth_flux, cm, 1)
 
     generate_single_oxic_prop_plot(ax2, temps, fluxes, results_900, \
@@ -430,13 +437,12 @@ def plot_oxic_vs_anoxic():
     generate_single_oxic_prop_plot(ax3, temps, fluxes, results_1100, \
         inner_HZ, outer_HZ, earth_flux, cm, 3)
 
-    sc = generate_single_oxic_prop_plot(ax4, temps, fluxes, results_1500, \
+    generate_single_oxic_prop_plot(ax4, temps, fluxes, results_1500, \
         inner_HZ, outer_HZ, earth_flux, cm, 4)
 
     cbar = plt.colorbar(sc, ax=[ax1,ax2,ax3,ax4], \
             label=r"Fraction of Modern Earth's Net O$_{2}$")
-    cbar.solids.set_edgecolor("face")
-    cbar.solids.set_alpha(0.5)
+    #cbar.solids.set(alpha=0.5)
 
     ax1.invert_xaxis()
     ax1.invert_yaxis()
