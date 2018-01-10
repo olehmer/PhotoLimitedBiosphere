@@ -707,6 +707,38 @@ def plot_pigments_over_temp(temps, pigs):
     plt.legend()
     plt.show()
 
+def plot_photo_limited_cutoff_for_earth():
+    earth_flux = 1361.0 #flux at Earth
+    ocean_needs = 0.07*earth_flux
+    land_needs = 0.3*earth_flux
+    ocean_dist = (earth_flux/ocean_needs)**0.5
+    land_dist = (earth_flux/land_needs)**0.5
+
+    plt.figure(figsize=(8,2))
+    plt.subplots_adjust(bottom=0.3, left=0.1)
+    plt.gca().set_yticks([])
+
+    #plot the 5 planets up to Jupiter
+    plt.plot([0.39],[0], 'o', ms=6, color="dimgray", markeredgecolor="none")
+    plt.plot([0.723],[0], 'o', ms=10, color="dimgray", markeredgecolor="none")
+    plt.plot([1],[0],'o', ms=10,color="dimgray", markeredgecolor="none")
+    plt.plot([1.524],[0], 'o', ms=6, color="dimgray", markeredgecolor="none")
+    plt.plot([5.2],[0], 'o', ms=30, color="dimgray", markeredgecolor="none")
+
+    #plot the cutoffs for the Earth's biosphere
+    plt.plot([land_dist],[0], 'o', ms=10, color="chartreuse", markeredgecolor="none")
+    plt.plot([ocean_dist],[0], 'o', ms=10, color="cornflowerblue", markeredgecolor="none")
+
+    #show the HZ
+    plt.gca().fill_between([0.99,1.70],[-1,-1],1, facecolor="blue", alpha=0.2,\
+            edgecolor="none")
+
+
+    plt.xlim(0,5.5)
+    plt.ylim(-1,1)
+    plt.xlabel("Orbital Semimajor Axis [AU]")
+    plt.show()
+
 def test_rad():
     temps = np.linspace(2300,7500,100)
     rad = np.zeros_like(temps)
@@ -723,10 +755,11 @@ def test_rad():
 
 
 #ORL - these functions generated plots for the paper
-plot_photo_limited_regions()
+#plot_photo_limited_regions()
 #bjorn_pigment_model_over_temp()
 #plot_oxic_vs_anoxic()
 #test_oxic_probability()
+plot_photo_limited_cutoff_for_earth()
 
 #this function plots our stellar temperature radius relationship
 #test_rad()
