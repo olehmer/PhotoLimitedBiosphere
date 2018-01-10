@@ -551,6 +551,26 @@ def plot_photo_limited_regions():
 
     f, ((ax1, ax2),(ax3,ax4)) = plt.subplots(2,2, sharex='col', sharey='row')
     f.subplots_adjust(hspace=0.05, wspace=0.12)
+
+
+    ################plot for abstract#########
+    """
+    f, ax = plt.subplots(1,1, figsize=(3,3))
+
+    generate_single_plot(ax, temps, fluxes, results_750nm, \
+        inner_HZ, outer_HZ, earth_flux, 1)
+
+    ax.invert_xaxis()
+    ax.set_xlabel(r"Incident Flux [$S/S_{\oplus}$]")
+    ax.set_ylabel("Stellar Temperature [K]")
+
+    plt.show()
+    return
+    """
+
+
+    ##########################################
+
     """
     CS = plt.contour(fluxes/earth_flux,temps,results,contours, alpha=0)
 
@@ -703,9 +723,9 @@ def test_rad():
 
 
 #ORL - these functions generated plots for the paper
-#plot_photo_limited_regions()
+plot_photo_limited_regions()
 #bjorn_pigment_model_over_temp()
-plot_oxic_vs_anoxic()
+#plot_oxic_vs_anoxic()
 #test_oxic_probability()
 
 #this function plots our stellar temperature radius relationship
