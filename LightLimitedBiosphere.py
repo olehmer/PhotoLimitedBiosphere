@@ -380,7 +380,7 @@ def plot_oxic_vs_anoxic():
   
 
 
-    #fix some shit with imshow
+    #fix some shit with imshow (the color map is off)
     results_1500[8][1] = 0.89
     results_1500[7][1] = 0.88
     results_1500[6][1] = 0.87
@@ -392,7 +392,7 @@ def plot_oxic_vs_anoxic():
     f, ((ax1, ax2),(ax3,ax4)) = plt.subplots(2,2, sharex='col', sharey='row')
     f.subplots_adjust(hspace=0.05, wspace=0.12)
 
-    cm = plt.cm.get_cmap('spring')
+    cm = plt.cm.get_cmap('GnBu_r')
 
     sc = generate_single_oxic_prop_plot(ax1, temps, fluxes, results_750, \
         inner_HZ, outer_HZ, earth_flux, cm, 1)
@@ -416,7 +416,6 @@ def plot_oxic_vs_anoxic():
 
     plt.colorbar(sc, ax=[ax1,ax2,ax3,ax4], \
             label=r"Net O$_{2}$ as a Fraction of Abiotic Reductant Flux")
-    #cbar.solids.set(alpha=0.5)
 
     ax1.invert_xaxis()
     ax1.invert_yaxis()
