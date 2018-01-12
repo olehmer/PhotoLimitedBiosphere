@@ -255,7 +255,7 @@ def test_oxic_probability(photon_fraction):
     #percent = 100.0*count/total
     #print("%d out of %d were oxic (%2.0f%%)"%(count,total,percent))
 
-    burial_rate = 0.00133
+    burial_rate = 0.0015
     land_contribution = oxygen_flux_from_OP/2.0*land_fraction
     ocean_contribution = oxygen_flux_from_OP/2.0*ocean_fraction
     total_oxygen = (land_contribution+ocean_contribution)*burial_rate
@@ -330,8 +330,9 @@ def plot_oxic_vs_anoxic():
     earth_flux = 1361.0
     albedo = 0.3
     
-    temps = np.linspace(2300,4200,30)
-    fluxes = np.linspace(0.2*earth_flux,0.9*earth_flux,30) #fluxes in terms of Earth flux
+    resolution = 50
+    temps = np.linspace(2300,4200,resolution)
+    fluxes = np.linspace(0.2*earth_flux,0.9*earth_flux,resolution) #fluxes in terms of Earth flux
     results_750 = np.zeros((len(fluxes),len(temps)))
     results_900 = np.zeros((len(fluxes),len(temps)))
     results_1100 = np.zeros((len(fluxes),len(temps)))
@@ -381,12 +382,12 @@ def plot_oxic_vs_anoxic():
 
 
     #fix some shit with imshow (the color map is off)
-    results_1500[8][1] = 0.89
-    results_1500[7][1] = 0.88
-    results_1500[6][1] = 0.87
-    results_1500[5][1] = 0.86
-    results_1500[4][1] = 0.85
-    results_1500[5][2] = 0.85
+    #results_1500[8][1] = 0.89
+    #results_1500[7][1] = 0.88
+    #results_1500[6][1] = 0.87
+    #results_1500[5][1] = 0.86
+    #results_1500[4][1] = 0.85
+    #results_1500[5][2] = 0.85
 
     #generate the plots
     f, ((ax1, ax2),(ax3,ax4)) = plt.subplots(2,2, sharex='col', sharey='row')
@@ -407,12 +408,12 @@ def plot_oxic_vs_anoxic():
         inner_HZ, outer_HZ, earth_flux, cm, 4)
 
     #test shit
-    for i in range(0,30):
-        for j in range(0,30):
-            if temps[j] < 3000.0 and temps[j] > 2500.0:
-                if fluxes[i] < 0.28*earth_flux:
-                    print("(i=%2d,j=%2d): T=%4.0f, F=%0.2f, R=%0.2f"%\
-                            (i,j,temps[j],fluxes[i]/earth_flux,results_1500[i][j]))
+    #for i in range(0,30):
+    #    for j in range(0,30):
+    #        if temps[j] < 3000.0 and temps[j] > 2500.0:
+    #            if fluxes[i] < 0.28*earth_flux:
+    #                print("(i=%2d,j=%2d): T=%4.0f, F=%0.2f, R=%0.2f"%\
+    #                        (i,j,temps[j],fluxes[i]/earth_flux,results_1500[i][j]))
 
     plt.colorbar(sc, ax=[ax1,ax2,ax3,ax4], \
             label=r"Net O$_{2}$ as a Fraction of Abiotic Reductant Flux")
